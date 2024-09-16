@@ -7,5 +7,5 @@ typedef struct {
   int64_t code;
 } Exitcode;
 
-int Exit(Exitcode* code);
+int Exit(Exitcode *code);
 #endif
