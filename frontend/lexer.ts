@@ -12,17 +12,21 @@ export enum TokenType {
   NUMBER = 'number',
   IDENTIFIER = 'id',
   PLUS = '+',
+  EQUALS = '=',
+  SEMI = ';',
   DASH = '-',
   SLASH = '/',
   STAR = '*',
+  K_LET = 'let',
+  K_CONST = 'const'
 }
 
 export type Token = {
   type: TokenType;
-  value: string;
+  value?: string;
 };
 
-export const MakeToken = (type: TokenType, value: string): Token => ({
+export const MakeToken = (type: TokenType, value?: string): Token => ({
   type,
   value,
 });
@@ -59,6 +63,8 @@ export default class Lexer {
       RegexHandler("\\-", defaultHandler(TokenType.DASH)),
       RegexHandler("\\/", defaultHandler(TokenType.SLASH)),
       RegexHandler("\\*", defaultHandler(TokenType.STAR)),
+      RegexHandler("\\=", defaultHandler(TokenType.EQUALS)),
+      RegexHandler("\\;", defaultHandler(TokenType.SEMI)),
       RegexHandler(`\\d+`, numberHandler),
       RegexHandler(`[a-zA-Z_@][a-zA-Z0-9_]*`, symbolHandler),
     ];

@@ -1,5 +1,16 @@
 import { Token, TokenType } from "./lexer.ts";
-import { BinaryExpr, Expr, NumericExpr, StringExpr, ParserError, ParenthesizedExpr } from "./helper.ts";
+import {
+  BinaryExpr,
+  CompoundStmt,
+  Expr,
+  ExprStmt,
+  NumericExpr,
+  ParenthesizedExpr,
+  ParserError,
+  Stmt,
+  StringExpr,
+  VariableStmt,
+} from "./helper.ts";
 
 enum Bp {
   LOWEST = 0,
@@ -18,6 +29,22 @@ export class Parser {
     this.pos = 0;
   }
 
+  private advance(): void {
+    this.pos++;
+    if (this.pos < this.tokens.length) {
+      this.currentToken = this.tokens[this.pos];
+    } else {
+      this.currentToken = { type: TokenType.EOF, value: "" };
+    }
+  }
+
+  private consume(expected: TokenType): void {
+    if (this.currentToken.type !== expected) {
+      throw new ParserError(`Expected ${expected}, found ${this.currentToken.type}`);
+    }
+    this.advance();
+  }
+
   getBindingPower(type: TokenType): Bp {
     switch (type) {
       case TokenType.PLUS:
@@ -33,75 +60,75 @@ export class Parser {
 
   expr(bp: Bp): Expr {
     let left = this.nud();
-    if (!left) throw new ParserError();
-
     while (this.getBindingPower(this.currentToken.type) > bp) {
       left = this.led(left);
     }
-
     return left;
   }
 
-  eat(): void {
-    this.pos++;
-    if (this.pos < this.tokens.length) {
-      this.currentToken = this.tokens[this.pos];
-    } else {
-      this.currentToken = { type: TokenType.EOF, value: "" }; // Handle EOF case
+  parse(): Stmt {
+    const ast = new CompoundStmt([]);
+    while (this.currentToken.type !== TokenType.EOF) {
+      ast.body.push(this.program());
     }
+    return ast;
   }
 
-  parse(): Expr {
-    return this.expr(Bp.LOWEST);
+  program(): Stmt {
+    if (this.currentToken.type === TokenType.K_LET) {
+      this.advance();
+      return this.variableDecl(false);
+    } else if (this.currentToken.type === TokenType.K_CONST) {
+      this.advance();
+      return this.variableDecl(true);
+    }
+    return this.stmt();
   }
 
-  nud(): Expr | undefined {
+  variableDecl(isConst: boolean): Stmt {
+    this.consume(TokenType.IDENTIFIER);
+    const name = this.currentToken.value;
+
+    this.consume(TokenType.EQUALS);
+    const value = this.expr(Bp.LOWEST);
+    this.consume(TokenType.SEMI);
+
+    return new VariableStmt(name ?? '', value, isConst);
+  }
+
+  stmt(): Stmt {
+    const expression = this.expr(Bp.LOWEST);
+    this.consume(TokenType.SEMI);
+    return new ExprStmt(expression);
+  }
+
+  nud(): Expr {
     switch (this.currentToken.type) {
-      case TokenType.LPAREN: {
-        this.eat(); // Consume '('
-        let expr = this.expr(Bp.LOWEST);
-        if (this.currentToken.type !== TokenType.RPAREN) {
-          throw new ParserError();
-        }
-        this.eat(); // Consume ')'
+      // deno-lint-ignore no-case-declarations
+      case TokenType.LPAREN:
+        this.advance(); // Consume '('
+        const expr = this.expr(Bp.LOWEST);
+        this.consume(TokenType.RPAREN);
         return new ParenthesizedExpr(expr);
-      }
-
-      case TokenType.IDENTIFIER: {
-        const expr = new StringExpr(this.currentToken.value);
-        this.eat(); // Consume the identifier
-        return expr;
-      }
-
-      case TokenType.NUMBER: {
-        const value = parseInt(this.currentToken.value);
-        if (isNaN(value)) {
-          throw new ParserError();
-        }
-        const expr = new NumericExpr(value);
-        this.eat(); // Consume the number
-        return expr;
-      }
-
+      // deno-lint-ignore no-case-declarations
+      case TokenType.IDENTIFIER:
+        const exprIdent = new StringExpr(this.currentToken.value ?? '');
+        this.advance(); // Consume identifier
+        return exprIdent;
+      // deno-lint-ignore no-case-declarations
+      case TokenType.NUMBER:
+        const value = parseInt(this.currentToken.value ?? '');
+        this.advance(); // Consume number
+        return new NumericExpr(value);
       default:
-        throw new ParserError();
+        throw new ParserError(`Unexpected token: ${this.currentToken.type}`);
     }
   }
 
   led(left: Expr): Expr {
-    const op = this.currentToken.type;
-    switch (op) {
-      case TokenType.PLUS:
-      case TokenType.DASH:
-      case TokenType.SLASH:
-      case TokenType.STAR: {
-        this.eat(); // Consume the operator
-        const right = this.expr(this.getBindingPower(op));
-        return new BinaryExpr(left, right, op);
-      }
-
-      default:
-        throw new ParserError();
-    }
+    const operator = this.currentToken.type;
+    this.advance(); // Consume operator
+    const right = this.expr(this.getBindingPower(operator));
+    return new BinaryExpr(left, right, operator);
   }
 }
