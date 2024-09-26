@@ -30,6 +30,12 @@ export const symbolHandler: TokenHandler = (
 ) => {
   pos.value += s.length;
   switch (s) {
+    case "def": {
+      return MakeToken(TokenType.K_DEF);
+    }
+    case "return": {
+      return MakeToken(TokenType.K_RETURN);
+    }
     case "let": {
       return MakeToken(TokenType.K_LET);
     }
@@ -47,7 +53,7 @@ export interface Expr {
 }
 
 export class UndefinedExpr implements Expr {
-  type = "UndefinedExpression"
+  type = "UndefinedExpression";
   constructor() {
   }
 }
@@ -76,6 +82,28 @@ export class ParenthesizedExpr implements Expr {
   type = "ParenthesizedExpression";
   constructor(public value: Expr) {}
 }
+
+export interface Parameter {
+  type: type;
+  name: string;
+}
+
+export class Param {
+  parameters: Parameter[] = [];
+  constructor() {
+    this.parameters = [];
+  }
+
+  add(Type: type, name: string) {
+    this.parameters.push({ type: Type, name: name } as Parameter);
+  }
+}
+
+export class FunctionCall implements Expr {
+  type = "FunctionCallExpression";
+  constructor(public name: string, public param: Param) {}
+}
+
 export interface Stmt {
   type: string;
 }
@@ -85,12 +113,18 @@ export class ExprStmt implements Stmt {
   constructor(public value: Expr) {}
 }
 
+export class FunctionStmt implements Stmt{
+  type = "Function"
+  constructor(public name: string, public param: Param, public Type: type, public body: CompoundStmt) {}
+}
+
 export class VariableStmt implements Stmt {
   type = "Variable";
   constructor(
     public name: string,
     public value: Expr,
     public is_const: boolean,
+    public Type: type,
   ) {}
 }
 
@@ -103,6 +137,12 @@ export class EmptyStmt implements Stmt {
   type = "Empty";
   constructor() {}
 }
+
+export class ReturnStmt implements Stmt {
+  type = "Return";
+  constructor(public value: Expr) {}
+}
+
 
 export const Red = (str: string) => {
   return `\x1b[33m${str}\x1b[0m`;
@@ -124,6 +164,26 @@ export class UnexpectedTokenError implements Error {
 export class ParserError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "ParserError"; // Set the name for better identification
+    this.name = "ParserError";
+  }
+}
+
+export interface type {
+  type: string;
+}
+
+export class CustomType implements type {
+  type = "Type";
+  constructor(public type_name: string) {
+  }
+}
+
+export class ImplicitType implements type {
+  type = "Implicit";
+}
+
+export class ArrayType implements type {
+  type = "Array";
+  constructor(public Type: type) {
   }
 }

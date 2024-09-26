@@ -6,19 +6,36 @@ import {
   TokenHandler,
 } from "./helper.ts";
 export enum TokenType {
-  EOF = '\0',
-  LPAREN = '(',
-  RPAREN = ')',
-  NUMBER = 'number',
-  IDENTIFIER = 'id',
-  PLUS = '+',
-  EQUALS = '=',
-  SEMI = ';',
-  DASH = '-',
-  SLASH = '/',
-  STAR = '*',
-  K_LET = 'let',
-  K_CONST = 'const'
+  EOF = "\0",
+  LPAREN = "(",
+  RPAREN = ")",
+  NUMBER = "number",
+  IDENTIFIER = "id",
+  PLUS = "+",
+  EQUALS = "=",
+  SEMI = ";",
+  DASH = "-",
+  SLASH = "/",
+  STAR = "*",
+  BIT_OR = "|",
+  BIT_AND = "&",
+  AND = "&&",
+  OR = "||",
+  PLUS_EQUALS = "+=",
+  MINUS_EQUALS = "-=",
+  EQUALS_EQUALS = "==",
+  BANG_EQUALS = "!=",
+  COLON = ":",
+  COMMA = ",",
+  LSB = "[",
+  RSB = "]",
+  LCB = "{",
+  RCB = "}",
+
+  K_LET = "let",
+  K_CONST = "const",
+  K_DEF = "def",
+  K_RETURN = "return",
 }
 
 export type Token = {
@@ -57,6 +74,12 @@ export default class Lexer {
     const MatchToken: RegexTokenHandler[] = [
       RegexHandler(`\/\/.*`, skipHandler),
       RegexHandler(`\\s+`, skipHandler),
+      RegexHandler("\\+=", defaultHandler(TokenType.PLUS_EQUALS)),
+      RegexHandler("\\-=", defaultHandler(TokenType.MINUS_EQUALS)),
+      RegexHandler("\\==", defaultHandler(TokenType.EQUALS_EQUALS)),
+      RegexHandler("\\!=", defaultHandler(TokenType.BANG_EQUALS)),
+      RegexHandler("\\||", defaultHandler(TokenType.OR)),
+      RegexHandler("\\&&", defaultHandler(TokenType.AND)),
       RegexHandler(`\\(`, defaultHandler(TokenType.LPAREN)),
       RegexHandler(`\\)`, defaultHandler(TokenType.RPAREN)),
       RegexHandler("\\+", defaultHandler(TokenType.PLUS)),
@@ -65,6 +88,14 @@ export default class Lexer {
       RegexHandler("\\*", defaultHandler(TokenType.STAR)),
       RegexHandler("\\=", defaultHandler(TokenType.EQUALS)),
       RegexHandler("\\;", defaultHandler(TokenType.SEMI)),
+      RegexHandler("\\:", defaultHandler(TokenType.COLON)),
+      RegexHandler("\\,", defaultHandler(TokenType.COMMA)),
+      RegexHandler("\\[", defaultHandler(TokenType.LSB)),
+      RegexHandler("\\]", defaultHandler(TokenType.RSB)),
+      RegexHandler("\\{", defaultHandler(TokenType.LCB)),
+      RegexHandler("\\}", defaultHandler(TokenType.RCB)),
+      RegexHandler("\\|", defaultHandler(TokenType.BIT_OR)),
+      RegexHandler("\\&", defaultHandler(TokenType.BIT_AND)),
       RegexHandler(`\\d+`, numberHandler),
       RegexHandler(`[a-zA-Z_@][a-zA-Z0-9_]*`, symbolHandler),
     ];
@@ -92,7 +123,7 @@ export default class Lexer {
       }
     }
 
-    this.tokens.push(MakeToken(TokenType.EOF, "\0"))
+    this.tokens.push(MakeToken(TokenType.EOF, "\0"));
 
     return this.tokens;
   }
